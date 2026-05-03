@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentProvider {
+  STRIPE
+  PAYPAL
+}
+
+model Payment {
+  id            String          @id @default(uuid())
+  externalId    String?         @unique // ID en Stripe o PayPal
+  amount        Decimal
+  currency      String          @default("USD")
+  status        PaymentStatus   @default(PENDING)
+  provider      PaymentProvider
+  customerEmail String?
+  metadata      Json?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  webhookLogs   WebhookLog[]
+}
+
+model WebhookLog {
+  id          String   @id @default(uuid())
+  provider    PaymentProvider
+  payload     Json
+  eventType   String?
+  processed   Boolean  @default(false)
+  error       String?
+  retryCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  
+  paymentId   String?
+  payment     Payment? @relation(fields: [paymentId], references: [id])
+}
